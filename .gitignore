@@ -1,0 +1,12 @@
+# Local dev / editor tooling (machine-specific paths)
+.claude/
+
+# OS cruft
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+*.swp
