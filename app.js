@@ -43,11 +43,11 @@ const SERVICE_TYPES = {
   SCR: [
     ['J','Scheduled passenger'], ['F','Scheduled cargo/mail'], ['G','Additional passenger'],
     ['C','Charter passenger'], ['H','Charter cargo/mail'], ['P','Positioning / ferry'],
-    ['T','Technical test'], ['K','Training'], ['X','Technical stop'],
+    ['W','Military'], ['T','Technical test'], ['K','Training'], ['X','Technical stop'],
   ],
   GCR: [
     ['D','General / business aviation'], ['N','General / business aviation'],
-    ['E','State (gov / FAA)'], ['I','Diplomatic'], ['U','Ambulance'],
+    ['E','State (gov / FAA)'], ['W','Military'], ['I','Diplomatic'], ['U','Ambulance'],
     ['P','Positioning / ferry / demo'], ['T','Technical test'],
   ],
 };
@@ -385,6 +385,13 @@ function inp(scope, fld, val, attrs = '') {
   return `<input type="text" data-scope="${scope}" data-field="${fld}" value="${esc(val)}" autocomplete="off" spellcheck="false" ${attrs} />`;
 }
 
+// date input with an id'd help span, so its readout can refresh without rebuilding the input element
+function dateField(label, scope, fld, val, helpId, helpText) {
+  return `<label class="field"><span class="field-label">${label}</span>`
+    + `<input type="date" data-scope="${scope}" data-field="${fld}" value="${esc(val)}" />`
+    + `<span class="field-help" id="${helpId}">${helpText}</span></label>`;
+}
+
 function renderHeaderVisibility() {
   $('#scrHeader').classList.toggle('hidden', state.type !== 'SCR');
   $('#gcrHeader').classList.toggle('hidden', state.type !== 'GCR');
@@ -428,9 +435,9 @@ function renderFieldGroup(s, scope) {
   if (isSCR) {
     const single = s.singleDay;
     const wdNames = ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const dateHint = isoToDDMMM(s.dateFrom) ? `${isoToDDMMM(s.dateFrom)} (${wdNames[isoWeekday(s.dateFrom)]})` : 'DDMMM';
     const dateInputs = single
-      ? field('Date', `<input type="date" data-scope="${scope}" data-field="dateFrom" value="${esc(s.dateFrom)}" />`,
-              isoToDDMMM(s.dateFrom) ? `${isoToDDMMM(s.dateFrom)} (${wdNames[isoWeekday(s.dateFrom)]})` : 'DDMMM')
+      ? dateField('Date', scope, 'dateFrom', s.dateFrom, `datehint-${scope}`, dateHint)
       : field('From', `<input type="date" data-scope="${scope}" data-field="dateFrom" value="${esc(s.dateFrom)}" />`)
         + field('To', `<input type="date" data-scope="${scope}" data-field="dateTo" value="${esc(s.dateTo)}" />`);
     const modeToggle = `<label class="field">
@@ -445,7 +452,7 @@ function renderFieldGroup(s, scope) {
     let dow;
     if (single) {
       const wd = isoWeekday(s.dateFrom);
-      dow = `<div class="dow"><span class="field-label">Day of operation</span><span class="dow-readout${wd ? '' : ' dim'}">${wd ? daysFromWeekday(wd) : '0000000'}</span><span class="field-help">Matched to the date</span></div>`;
+      dow = `<div class="dow"><span class="field-label">Day of operation</span><span class="dow-readout${wd ? '' : ' dim'}" id="dowread-${scope}">${wd ? daysFromWeekday(wd) : '0000000'}</span><span class="field-help">Matched to the date</span></div>`;
     } else {
       const btns = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map((d, i) =>
         `<button type="button" class="dow-btn${s.days[i] ? ' on' : ''}" data-dow="${scope}" data-idx="${i}">${d}</button>`).join('');
@@ -456,11 +463,11 @@ function renderFieldGroup(s, scope) {
     rows.push(`<div class="entry-row">${dow}</div>`);
   } else if (s.kind === 'both') {
     rows.push(`<div class="entry-row">
-      ${field('Arrival date', `<input type="date" data-scope="${scope}" data-field="date" value="${esc(s.date)}" />`, isoToDDMMM(s.date) || 'DDMMM')}
-      ${field('Departure date', `<input type="date" data-scope="${scope}" data-field="dateDep" value="${esc(s.dateDep)}" />`, isoToDDMMM(s.dateDep) || 'often the same day')}
+      ${dateField('Arrival date', scope, 'date', s.date, `gdate-${scope}`, isoToDDMMM(s.date) || 'DDMMM')}
+      ${dateField('Departure date', scope, 'dateDep', s.dateDep, `gdatedep-${scope}`, isoToDDMMM(s.dateDep) || 'often the same day')}
     </div>`);
   } else {
-    rows.push(`<div class="entry-row">${field('Date', `<input type="date" data-scope="${scope}" data-field="date" value="${esc(s.date)}" />`, isoToDDMMM(s.date) || 'DDMMM')}</div>`);
+    rows.push(`<div class="entry-row">${dateField('Date', scope, 'date', s.date, `gdate-${scope}`, isoToDDMMM(s.date) || 'DDMMM')}</div>`);
   }
 
   /* aircraft */
@@ -607,17 +614,38 @@ function slotInput(ev) {
   updatePreview();
 }
 
+// refresh date-derived readouts in place, so editing a date never rebuilds the input element
+function refreshDateReadouts(scope) {
+  const s = state[scope];
+  const wdNames = ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const dh = document.getElementById('datehint-' + scope);
+  if (dh) dh.textContent = isoToDDMMM(s.dateFrom) ? `${isoToDDMMM(s.dateFrom)} (${wdNames[isoWeekday(s.dateFrom)]})` : 'DDMMM';
+  const dr = document.getElementById('dowread-' + scope);
+  if (dr) {
+    const wd = isoWeekday(s.dateFrom);
+    dr.textContent = wd ? daysFromWeekday(wd) : '0000000';
+    dr.classList.toggle('dim', !wd);
+  }
+  const gd = document.getElementById('gdate-' + scope);
+  if (gd) gd.textContent = isoToDDMMM(s.date) || 'DDMMM';
+  const gdd = document.getElementById('gdatedep-' + scope);
+  if (gdd) gdd.textContent = isoToDDMMM(s.dateDep) || 'often the same day';
+}
+
 function slotChange(ev) {
   const el = ev.target;
   const sc = el.dataset.scope;
-  if (sc === 'movement') {
+  if (sc === 'movement') {              // structural change: which fields are shown
     state.slot.kind = el.value;
     state.revised.kind = el.value;
     renderSlotForms(); updatePreview(); return;
   }
   if (sc !== 'slot' && sc !== 'revised') return;
   state[sc][el.dataset.field] = el.type === 'checkbox' ? el.checked : el.value;
-  renderSlotForms(); updatePreview();
+  // value-only change (date / service / day-offset): do NOT rebuild the form — rebuilding
+  // would destroy the date input mid-edit (the "weird year typing" bug). Update readouts in place.
+  if (el.type === 'date') refreshDateReadouts(sc);
+  updatePreview();
 }
 
 function slotClick(ev) {
