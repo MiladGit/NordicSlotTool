@@ -68,7 +68,7 @@ message, and `validate()` produces the inline warnings.
 ## References
 
 - Slot Coordination Switzerland — *SCR Crash Course* (extracts from IATA SSIM ch. 6)
-- Slot Coordination Czech Republic — *GCR manual* (General aviation Clearance Request)
+- Slot Coordination Czech Republic — *GCR manual* (General Aviation Clearance Request)
 - Airport Coordination Netherlands — *Working procedure: positioning flights* (SCR vs GCR by service type)
 - IATA *Standard Schedules Information Manual (SSIM)*, Chapter 6 — the authoritative source
 

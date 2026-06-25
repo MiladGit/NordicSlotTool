@@ -46,8 +46,8 @@ const SERVICE_TYPES = {
     ['W','Military'], ['T','Technical test'], ['K','Training'], ['X','Technical stop'],
   ],
   GCR: [
-    ['D','General / business aviation'], ['N','General / business aviation'],
-    ['E','State (gov / FAA)'], ['W','Military'], ['I','Diplomatic'], ['U','Ambulance'],
+    ['D','General aviation'], ['N','Business aviation'],
+    ['E','State / government'], ['W','Military'], ['I','Diplomatic'], ['U','Ambulance'],
     ['P','Positioning / ferry / demo'], ['T','Technical test'],
   ],
 };
@@ -423,7 +423,7 @@ function renderFieldGroup(s, scope) {
     if (needDep) ids.push(field('Departure flight', inp(scope, 'depFlight', s.depFlight, 'class="mono up" placeholder="SK4322"')));
     rows.push(`<div class="entry-row">${ids.join('')}</div>`);
   } else if (state.gcrMode === 'REG') {
-    rows.push(`<div class="entry-row">${field('Aircraft registration', inp(scope, 'ident', s.ident, 'class="mono up" placeholder="OYABC"'), s.kind === 'both' ? 'Used on both the arrival and departure line' : '')}</div>`);
+    rows.push(`<div class="entry-row">${field('Aircraft registration', inp(scope, 'ident', s.ident, 'class="mono up" placeholder="OYABC"'), s.kind === 'both' ? 'Used on both the arrival and departure lines' : '')}</div>`);
   } else {
     const ids = [];
     if (needArr) ids.push(field('Arrival flight / call sign', inp(scope, 'arrFlight', s.arrFlight, 'class="mono up" placeholder="ABC123"')));
@@ -464,7 +464,7 @@ function renderFieldGroup(s, scope) {
   } else if (s.kind === 'both') {
     rows.push(`<div class="entry-row">
       ${dateField('Arrival date', scope, 'date', s.date, `gdate-${scope}`, isoToDDMMM(s.date) || 'DDMMM')}
-      ${dateField('Departure date', scope, 'dateDep', s.dateDep, `gdatedep-${scope}`, isoToDDMMM(s.dateDep) || 'often the same day')}
+      ${dateField('Departure date', scope, 'dateDep', s.dateDep, `gdatedep-${scope}`, isoToDDMMM(s.dateDep) || 'Often the same day')}
     </div>`);
   } else {
     rows.push(`<div class="entry-row">${dateField('Date', scope, 'date', s.date, `gdate-${scope}`, isoToDDMMM(s.date) || 'DDMMM')}</div>`);
@@ -474,7 +474,7 @@ function renderFieldGroup(s, scope) {
   const acList = isSCR ? 'actypes-iata' : 'actypes-icao';
   const acHelp = isSCR ? '3 chars (IATA), e.g. 320' : '4 chars (ICAO), e.g. C25B';
   rows.push(`<div class="entry-row tight">
-    ${field('Seats', inp(scope, 'seats', s.seats, 'inputmode="numeric" maxlength="3" class="mono" placeholder="120"'), 'auto-padded to 3')}
+    ${field('Seats', inp(scope, 'seats', s.seats, 'inputmode="numeric" maxlength="3" class="mono" placeholder="120"'), 'Auto-padded to 3')}
     ${field('Aircraft type', inp(scope, 'acType', s.acType, `class="mono up" list="${acList}" maxlength="4" placeholder="${isSCR ? '320' : 'C25B'}"`), acHelp)}
   </div>`);
 
@@ -558,7 +558,7 @@ function updatePreview() {
     v.innerHTML = `<div class="val-line ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Looks complete — ready to copy into your email.</div>`;
   } else {
     const shown = warns.slice(0, 12).map(msg =>
-      `<div class="val-line warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>${esc(msg)}</div>`).join('');
+      `<div class="val-line warn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>${esc(msg.charAt(0).toUpperCase() + msg.slice(1))}</div>`).join('');
     const more = warns.length > 12 ? `<div class="val-line warn">+ ${warns.length - 12} more…</div>` : '';
     v.innerHTML = shown + more;
   }
@@ -629,7 +629,7 @@ function refreshDateReadouts(scope) {
   const gd = document.getElementById('gdate-' + scope);
   if (gd) gd.textContent = isoToDDMMM(s.date) || 'DDMMM';
   const gdd = document.getElementById('gdatedep-' + scope);
-  if (gdd) gdd.textContent = isoToDDMMM(s.dateDep) || 'often the same day';
+  if (gdd) gdd.textContent = isoToDDMMM(s.dateDep) || 'Often the same day';
 }
 
 function slotChange(ev) {
