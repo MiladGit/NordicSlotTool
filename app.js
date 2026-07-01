@@ -43,7 +43,7 @@ const SERVICE_TYPES = {
   SCR: [
     ['J','Scheduled passenger'], ['F','Scheduled cargo/mail'], ['G','Additional passenger'],
     ['C','Charter passenger'], ['H','Charter cargo/mail'], ['P','Positioning / ferry'],
-    ['W','Military'], ['T','Technical test'], ['K','Training'], ['X','Technical stop'],
+    ['W','Military'], ['U','Ambulance'], ['T','Technical test'], ['K','Training'], ['X','Technical stop'],
   ],
   GCR: [
     ['D','General aviation'], ['N','Business aviation'],
