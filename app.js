@@ -39,18 +39,39 @@ const AIRPORTS = [
 const ACTYPES_IATA = ['319','320','321','32N','32Q','738','73H','7M8','333','339','359','35K','788','789','76W','E90','E95','CR9','CRK','AT7','AT5','DH4','SU9','BCS3'];
 const ACTYPES_ICAO = ['C25A','C25B','C25C','C510','C56X','C68A','C700','CL30','CL35','CL60','GLEX','GL5T','GLF4','GLF5','G280','GA5C','GA6C','FA7X','FA8X','F2TH','E55P','E550','E545','PC12','PC24','TBM9','BE20','BE9L','C208','PAY3','H25B','LJ45','LJ60','GLF6'];
 
-const SERVICE_TYPES = {
-  SCR: [
-    ['J','Scheduled passenger'], ['F','Scheduled cargo/mail'], ['G','Additional passenger'],
-    ['C','Charter passenger'], ['H','Charter cargo/mail'], ['P','Positioning / ferry'],
-    ['W','Military'], ['U','Ambulance'], ['T','Technical test'], ['K','Training'], ['X','Technical stop'],
-  ],
-  GCR: [
-    ['D','General aviation'], ['N','Business aviation'],
-    ['E','State / government'], ['W','Military'], ['I','Diplomatic'], ['U','Ambulance'],
-    ['P','Positioning / ferry / demo'], ['T','Technical test'],
-  ],
-};
+// Full IATA SSIM (Chapter 6) service-type table. The same set is valid for SCR and GCR
+// — several codes (I, U, X) are defined "Chapter 6 only", i.e. specifically for slot messages.
+const SERVICE_TYPES_ALL = [
+  // passenger
+  ['J','Scheduled passenger'],
+  ['S','Scheduled passenger (shuttle)'],
+  ['G','Additional passenger'],
+  ['B','Additional passenger (shuttle)'],
+  ['C','Charter passenger'],
+  // cargo / mail
+  ['F','Scheduled cargo / mail'],
+  ['H','Charter cargo / mail'],
+  ['A','Additional cargo / mail'],
+  ['M','Mail only'],
+  ['V','Surface transport (truck)'],
+  ['L','Passenger + cargo / mail'],
+  ['Q','Passenger / cargo in cabin'],
+  ['R','Passenger / cargo in cabin (mixed)'],
+  ['O','Charter, special handling'],
+  // general / business / state / special
+  ['D','General aviation'],
+  ['N','Business aviation / air taxi'],
+  ['E','State / government'],
+  ['I','State / diplomatic'],
+  ['U','Air ambulance / humanitarian'],
+  ['W','Military'],
+  // non-revenue / technical
+  ['P','Positioning / ferry / demo'],
+  ['K','Crew training'],
+  ['T','Technical test'],
+  ['X','Technical stop'],
+];
+const SERVICE_TYPES = { SCR: SERVICE_TYPES_ALL, GCR: SERVICE_TYPES_ALL };
 
 // shown in the reference panel
 const ACTIONS = [
