@@ -60,9 +60,9 @@
             <span class="field-label">Season</span>
             <span class="field-input-row">
               <input type="text" id="season" maxlength="3" placeholder="S25" autocomplete="off" spellcheck="false" />
-              <button type="button" class="mini-btn" id="seasonAuto" title="Derive season from the message date">Auto</button>
+              <span class="season-picks" id="seasonPicks" role="group" aria-label="Pick a season"></span>
             </span>
-            <span class="field-help">S = summer, W = winter + 2-digit year</span>
+            <span class="field-help" id="seasonHelp">S = summer, W = winter + 2-digit year</span>
           </label>
           <label class="field">
             <span class="field-label">Message date</span>

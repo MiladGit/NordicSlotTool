@@ -235,6 +235,8 @@ select {
   transition: all .14s;
 }
 .mini-btn:hover { color: var(--accent); border-color: var(--accent); }
+.mini-btn.is-active { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+.season-picks { display: flex; gap: 4px; }
 
 /* ---------------- Buttons ---------------- */
 .btn {

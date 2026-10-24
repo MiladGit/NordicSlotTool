@@ -137,6 +137,32 @@ function seasonForIso(iso) {               // IATA season code, e.g. S25 / W24
   return 'W' + String(y).slice(-2);
 }
 
+// S = last Sun of March → Sat before last Sun of October; W = last Sun of October → Sat before last Sun of March
+function seasonRange(code) {
+  const m = /^([SW])(\d{2})$/.exec(clean(code));
+  if (!m) return null;
+  const y = 2000 + Number(m[2]);
+  const dayBefore = d => new Date(d.getTime() - 86400000);
+  const start = m[1] === 'S' ? lastSundayOfMonth(y, 2) : lastSundayOfMonth(y, 9);
+  const end   = dayBefore(m[1] === 'S' ? lastSundayOfMonth(y, 9) : lastSundayOfMonth(y + 1, 2));
+  return { name: m[1] === 'S' ? 'Summer' : 'Winter', start, end };
+}
+
+function nextSeason(code) {
+  const m = /^([SW])(\d{2})$/.exec(clean(code));
+  if (!m) return '';
+  return m[1] === 'S' ? 'W' + m[2] : 'S' + String((Number(m[2]) + 1) % 100).padStart(2, '0');
+}
+
+function fmtSeasonDate(d) {                // 25 Oct 2026
+  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()].charAt(0)}${MONTHS[d.getUTCMonth()].slice(1).toLowerCase()} ${d.getUTCFullYear()}`;
+}
+
+function seasonLabel(code) {
+  const r = seasonRange(code);
+  return r ? `${r.name} ${fmtSeasonDate(r.start)} – ${fmtSeasonDate(r.end)}` : '';
+}
+
 function padSeats(v) {
   const digits = (v || '').toString().replace(/\D/g, '');
   if (!digits) return '';
@@ -153,13 +179,25 @@ const needDepOf = kind => kind === 'turnaround' || kind === 'both' || kind === '
 
 const LS_KEY = 'nordic-slot-tool/v1';
 
+function todayIso() {                   // UTC date, YYYY-MM-DD
+  const t = new Date();
+  return `${t.getUTCFullYear()}-${String(t.getUTCMonth() + 1).padStart(2, '0')}-${String(t.getUTCDate()).padStart(2, '0')}`;
+}
+
+/* every date starts on today — the user only nudges it forward */
+function resetDatesToToday(s) {
+  const t = todayIso();
+  s.dateFrom = t; s.dateTo = t; s.date = t; s.dateDep = t;
+}
+
 function newSlot() {
+  const t = todayIso();
   return {
     kind: 'turnaround',                  // SCR: turnaround/arrival/departure ; GCR: both/arrival/departure
     arrFlight: '', depFlight: '', ident: '',
-    singleDay: true, dateFrom: '', dateTo: '',
+    singleDay: true, dateFrom: t, dateTo: t,
     days: [false, false, false, false, false, false, false],
-    date: '', dateDep: '',
+    date: t, dateDep: t,
     seats: '', acType: '',
     origin: '', arrTime: '',
     depTime: '', depOffset: 0, dest: '',
@@ -217,6 +255,11 @@ function load() {
   state.revised   = { ...newSlot(), ...(saved.revised || {}) };
   if (!Array.isArray(state.slot.days))    state.slot.days = newSlot().days;
   if (!Array.isArray(state.revised.days)) state.revised.days = newSlot().days;
+  /* dates never carry over from a previous visit */
+  resetDatesToToday(state.slot);
+  resetDatesToToday(state.revised);
+  state.header.msgDate = todayIso();
+  state.header.season  = seasonForIso(todayIso());
   coerceKinds();
   return true;
 }
@@ -240,7 +283,7 @@ function scrLine(e) {
   const dest = clean(e.dest)   || '«DST»';
   const at   = clean(e.arrTime) || '«HHMM»';
   const dt   = clean(e.depTime) || '«HHMM»';
-  const ovn  = Number(e.depOffset) > 0 ? String(Number(e.depOffset)) : '';
+  const ovn  = Number(e.depOffset) > 0 ? String(Number(e.depOffset)) : '';   // turnarounds only
   const sa   = clean(e.arrSvc) || '«S»';
   const sd   = clean(e.depSvc) || '«S»';
 
@@ -248,7 +291,7 @@ function scrLine(e) {
     return `${A}${arrF} ${depF} ${period} ${days} ${st} ${orig}${at} ${dt}${ovn}${dest} ${sa}${sd}`;
   if (e.kind === 'arrival')
     return `${A}${arrF} ${period} ${days} ${st} ${orig}${at} ${sa}`;
-  return `${A} ${depF} ${period} ${days} ${st} ${dt}${ovn}${dest} ${sd}`;   // departure (space after action)
+  return `${A} ${depF} ${period} ${days} ${st} ${dt}${dest} ${sd}`;   // departure (space after action)
 }
 
 function gcrOneLine(e, dir) {
@@ -377,6 +420,13 @@ function validate() {
   const h = state.header;
   if (state.type === 'SCR') {
     if (!RE.season.test(clean(h.season))) w.push('Season should look like S25 or W24.');
+    else {
+      const sc = clean(h.season);
+      [state.slot.dateFrom, state.slot.singleDay ? '' : state.slot.dateTo].forEach(d => {
+        const ds = seasonForIso(d);
+        if (ds && ds !== sc) w.push(`${isoToDDMMM(d)} falls in ${ds} (${seasonRange(ds).name.toLowerCase()}), not ${sc}.`);
+      });
+    }
     if (!isoToDDMMM(h.msgDate))           w.push('Set a message date.');
     if (!RE.iata.test(clean(h.scrAirport))) w.push('Coordinated airport must be a 3-letter IATA code.');
   } else {
@@ -512,8 +562,8 @@ function renderFieldGroup(s, scope) {
   }
   rows.push(`<div class="entry-row">${route.join('')}</div>`);
 
-  /* departure day offset / over-midnight (SCR with a departure) */
-  if (isSCR && needDep) {
+  /* departure day offset / over-midnight — turnarounds only; a departure-only line is already dated on the departure */
+  if (isSCR && s.kind === 'turnaround') {
     const cur = String(Number(s.depOffset) || 0);
     const offOpts = [0, 1, 2, 3, 4, 5, 6].map(n =>
       opt(String(n), n === 0 ? 'Same day' : (n === 1 ? '+1 day (overnight)' : `+${n} days`), cur)).join('');
@@ -572,6 +622,7 @@ function updatePreview() {
   const text = generate();
   const html = esc(text).replace(/«[^»]*»/g, m => `<span class="ph">${m}</span>`);
   $('#preview').innerHTML = html || '<span class="ph">message preview…</span>';
+  renderSeasonHelper();
 
   const warns = validate();
   const v = $('#validation');
@@ -666,6 +717,10 @@ function slotChange(ev) {
   // value-only change (date / service / day-offset): do NOT rebuild the form — rebuilding
   // would destroy the date input mid-edit (the "weird year typing" bug). Update readouts in place.
   if (el.type === 'date') refreshDateReadouts(sc);
+  // the season follows the SCR slot date, so nudging a date over the S/W boundary flips it
+  if (state.type === 'SCR' && el.dataset.field === 'dateFrom' && seasonForIso(el.value)) {
+    setSeason(seasonForIso(el.value)); return;
+  }
   updatePreview();
 }
 
@@ -708,10 +763,26 @@ function wireHeaderFooter() {
     updatePreview();
   });
 
-  $('#seasonAuto').addEventListener('click', () => {
-    const s = seasonForIso(state.header.msgDate);
-    if (s) { state.header.season = s; $('#season').value = s; updatePreview(); }
+  $('#seasonPicks').addEventListener('click', ev => {
+    const b = ev.target.closest('[data-season]'); if (!b) return;
+    ev.preventDefault();
+    setSeason(b.dataset.season);
   });
+}
+
+function setSeason(code) {
+  state.header.season = code;
+  $('#season').value = code;
+  updatePreview();
+}
+
+// quick picks (this season + next) and the date range of whatever season is entered
+function renderSeasonHelper() {
+  const cur = seasonForIso(todayIso());
+  const chosen = clean(state.header.season);
+  $('#seasonPicks').innerHTML = [cur, nextSeason(cur)].map(c =>
+    `<button type="button" class="mini-btn${c === chosen ? ' is-active' : ''}" data-season="${c}" title="${esc(seasonLabel(c))}">${c}</button>`).join('');
+  $('#seasonHelp').textContent = seasonLabel(chosen) || 'S = summer, W = winter + 2-digit year';
 }
 
 function wireSegments() {
@@ -797,8 +868,7 @@ function init() {
   populateDatalists();
 
   if (!load()) {
-    const today = new Date();
-    const iso = `${today.getUTCFullYear()}-${String(today.getUTCMonth() + 1).padStart(2, '0')}-${String(today.getUTCDate()).padStart(2, '0')}`;
+    const iso = todayIso();
     state.header.msgDate = iso;
     state.header.season = seasonForIso(iso);
   }
